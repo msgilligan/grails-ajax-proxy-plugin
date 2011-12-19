@@ -300,7 +300,9 @@ public class ProxyServlet extends HttpServlet {
         // Pass response headers back to the client
         Header[] headerArrayResponse = httpMethodProxyRequest.getResponseHeaders();
         for(Header header : headerArrayResponse) {
-       		httpServletResponse.setHeader(header.getName(), header.getValue());
+            if (!header.getName().equals("Transfer-Encoding")) {
+       		    httpServletResponse.setHeader(header.getName(), header.getValue());
+       		}
         }
         
         // Send the content to the client
