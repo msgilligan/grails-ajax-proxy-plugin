@@ -1,2 +1,7 @@
-Grails Proxy Plugin README
-TBD
+Grails Proxy Plugin
+
+Licensed under the terms of the Apache Software License 2.0
+
+The included ProxyServlet.Java file is from:
+http://edwardstx.net/2010/06/http-proxy-servlet/
+(Also Apache 2.0 Licensed)
