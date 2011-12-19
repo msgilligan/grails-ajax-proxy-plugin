@@ -1,4 +1,4 @@
-<plugin name='proxy' version='0.1' grailsVersion='1.3.7 &gt; *'>
+<plugin name='proxy' version='0.1.1' grailsVersion='1.3.7 &gt; *'>
   <author>Sean Gilligan</author>
   <authorEmail>sean at msgilligan dot com</authorEmail>
   <title>Ajax Proxy Plugin (for cross-domain requests)</title>

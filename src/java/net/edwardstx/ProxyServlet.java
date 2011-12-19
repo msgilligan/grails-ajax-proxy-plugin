@@ -63,6 +63,10 @@ public class ProxyServlet extends HttpServlet {
     
     // Proxy host params
     /**
+     * The scheme to which we are proxying requests "http://" or "https://"
+     */
+	private String stringProxyScheme;
+    /**
      * The host to which we are proxying requests
      */
 	private String stringProxyHost;
@@ -84,6 +88,13 @@ public class ProxyServlet extends HttpServlet {
 	 * @param servletConfig The Servlet configuration passed in by the servlet conatiner
 	 */
 	public void init(ServletConfig servletConfig) {
+		// Get the proxy scheme (http:// or https://)
+		String stringProxySchemeNew = servletConfig.getInitParameter("proxyScheme");
+		if(stringProxySchemeNew == null || stringProxySchemeNew.length() == 0 ||
+		    !(stringProxySchemeNew.equals("http://") ||  stringProxySchemeNew.equals("https://"))) { 
+		    stringProxySchemeNew = "http://";       // Default to http if blank or invalid
+		}
+		this.setProxyScheme(stringProxySchemeNew);
 		// Get the proxy host
 		String stringProxyHostNew = servletConfig.getInitParameter("proxyHost");
 		if(stringProxyHostNew == null || stringProxyHostNew.length() == 0) { 
@@ -360,7 +371,7 @@ public class ProxyServlet extends HttpServlet {
 	// Accessors
     private String getProxyURL(HttpServletRequest httpServletRequest) {
 		// Set the protocol to HTTP
-		String stringProxyURL = "http://" + this.getProxyHostAndPort();
+		String stringProxyURL = this.getProxyScheme() + this.getProxyHostAndPort();
 		// Check if we are proxying to a path other that the document root
 		if(!this.getProxyPath().equalsIgnoreCase("")){
 			stringProxyURL += this.getProxyPath();
@@ -382,6 +393,12 @@ public class ProxyServlet extends HttpServlet {
     	}
 	}
     
+	private String getProxyScheme() {
+		return this.stringProxyScheme;
+	}
+	private void setProxyScheme(String stringProxySchemeNew) {
+		this.stringProxyScheme = stringProxySchemeNew;
+	}
 	private String getProxyHost() {
 		return this.stringProxyHost;
 	}

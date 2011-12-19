@@ -3,7 +3,7 @@ import org.codehaus.groovy.grails.commons.ConfigurationHolder
 
 class ProxyGrailsPlugin {
     // the plugin version
-    def version = "0.1"
+    def version = "0.1.1"
     // the version or versions of Grails the plugin is designed for
     def grailsVersion = "1.3.7 > *"
     // the other plugins this plugin depends on
@@ -26,7 +26,11 @@ Brief description of the plugin.
 
     def doWithWebDescriptor = { xml ->
         // TODO Implement additions to web.xml (optional)
-      def config = ConfigurationHolder.config.plugins.grailsProxyPlugin
+      def config = ConfigurationHolder.config.plugins.proxy
+
+      def proxySchemeConfig = config.proxyScheme
+      def proxyScheme = proxySchemeConfig instanceof ConfigObject?'https://':proxySchemeConfig
+
       def proxyHostConfig = config.proxyHost
       def proxyHost = proxyHostConfig instanceof ConfigObject?'www.msgilligan.com':proxyHostConfig
 
@@ -43,6 +47,10 @@ Brief description of the plugin.
         servlet{
           'servlet-name'('ProxyServlet')
           'servlet-class'('net.edwardstx.ProxyServlet')
+          'init-param' {
+            'param-name'('proxyScheme')
+            'param-value'("${proxyScheme}")
+          }
           'init-param' {
             'param-name'('proxyHost')
             'param-value'("${proxyHost}")
