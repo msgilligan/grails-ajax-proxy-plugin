@@ -14,6 +14,11 @@ grails.project.dependency.resolution = {
 	}
 
 	dependencies {
-		// runtime 'mysql:mysql-connector-java:5.1.13'
+		runtime('commons-httpclient:commons-httpclient:3.1') {
+			transitive = false
+		}
+		runtime('commons-logging:commons-logging:1.1.1') {
+			transitive = false
+		}
 	}
 }
