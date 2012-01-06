@@ -1,4 +1,4 @@
-class ProxyGrailsPlugin {
+class AjaxProxyGrailsPlugin {
     def version = "0.1.1"
     def grailsVersion = "1.3 > *"
 
@@ -6,7 +6,7 @@ class ProxyGrailsPlugin {
     def authorEmail = "sean at msgilligan dot com"
     def title = "Ajax Proxy Plugin"
     def description = 'Ajax Proxy Plugin (for cross-domain requests)'
-    def documentation = "http://grails.org/plugin/proxy"
+    def documentation = "http://grails.org/plugin/ajax-proxy"
 
     def doWithWebDescriptor = { xml ->
 
