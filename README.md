@@ -6,9 +6,11 @@ Want to use some Ajax in your Grails application?  Same Origin Policy getting in
 For example, say you want to use the Google Translate API but either don't want to use JSONP or can't because you need to translate strings that are too long to include in the URL as query parameters.
 
 Run
+
     grails install-plugin ajax-proxy
     
 Add the folloing to grails-app/conf/Config.groovy
+
     plugins {
       proxy {
         proxyScheme = 'https://'
@@ -18,7 +20,8 @@ Add the folloing to grails-app/conf/Config.groovy
       }
     }
     
-Write your JavaScript to access Google Translate at
+Write your JavaScript to access Google Translate at the following URL on your server
+
     /proxy/language/translate/v2
     
 (That's /proxy + the path on the destination server)
