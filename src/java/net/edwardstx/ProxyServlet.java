@@ -9,6 +9,8 @@ import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.Map;
 
 import javax.servlet.ServletConfig;
@@ -39,6 +41,13 @@ public class ProxyServlet extends HttpServlet {
 	 * Serialization UID.
 	 */
 	private static final long serialVersionUID = 1L;
+	
+	
+	/**
+	 * Logger (use java.util to avoid dependencies - or should we use log4j because of Grails?).
+	 */
+	private static Logger logger = Logger.getLogger(ProxyServlet.class.getName());
+	
 	/**
 	 * Key for redirect location header.
 	 */
@@ -88,6 +97,8 @@ public class ProxyServlet extends HttpServlet {
 	 * @param servletConfig The Servlet configuration passed in by the servlet conatiner
 	 */
 	public void init(ServletConfig servletConfig) {
+    	logger.setLevel(Level.OFF);
+    	logger.info("init");
 		// Get the proxy scheme (http:// or https://)
 		String stringProxySchemeNew = servletConfig.getInitParameter("proxyScheme");
 		if(stringProxySchemeNew == null || stringProxySchemeNew.length() == 0 ||
@@ -128,6 +139,7 @@ public class ProxyServlet extends HttpServlet {
 	 */
 	public void doGet (HttpServletRequest httpServletRequest, HttpServletResponse httpServletResponse)
     		throws IOException, ServletException {
+    	logger.info("doGet");
 		// Create a GET request
 		GetMethod getMethodProxyRequest = new GetMethod(this.getProxyURL(httpServletRequest));
 		// Forward the request headers
@@ -146,6 +158,7 @@ public class ProxyServlet extends HttpServlet {
 	 */
 	public void doPost(HttpServletRequest httpServletRequest, HttpServletResponse httpServletResponse)
         	throws IOException, ServletException {
+    	logger.info("doPost");
     	// Create a standard POST request
     	PostMethod postMethodProxyRequest = new PostMethod(this.getProxyURL(httpServletRequest));
 		// Forward the request headers
@@ -355,13 +368,18 @@ public class ProxyServlet extends HttpServlet {
 			Enumeration enumerationOfHeaderValues = httpServletRequest.getHeaders(stringHeaderName);
 			while(enumerationOfHeaderValues.hasMoreElements()) {
 				String stringHeaderValue = (String) enumerationOfHeaderValues.nextElement();
+			    logger.info("<== Received request header   " + stringHeaderName + " ==: " + stringHeaderValue);
 				// In case the proxy host is running multiple virtual servers,
 				// rewrite the Host header to ensure that we get content from
 				// the correct virtual server
 				if(stringHeaderName.equalsIgnoreCase(STRING_HOST_HEADER_NAME)){
 					stringHeaderValue = getProxyHostAndPort();
 				}
+				if(stringHeaderName.equalsIgnoreCase("X-Forward-HTTP-Method-Override")) {
+				    stringHeaderName = "X-HTTP-Method-Override";
+				}
 				Header header = new Header(stringHeaderName, stringHeaderValue);
+		    	logger.info("==> Forwarding request header " + stringHeaderName + " ==: " + stringHeaderValue);
 				// Set the same header on the proxy request
 				httpMethodProxyRequest.setRequestHeader(header);
 			}
