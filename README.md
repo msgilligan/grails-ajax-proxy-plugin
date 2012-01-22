@@ -24,15 +24,15 @@ Write your JavaScript to access Google Translate at the following URL on your se
 
     /proxy/language/translate/v2
     
-(That's /proxy + the path on the destination server)
+(That's `/proxy` + the path on the destination server)
 
 You're done.
 
 Notes
 -----
-Grails will process (e.g. turn a POST into a GET) and swallow the X-HTTP-Method-Override header.  (It appears this is done by the HiddenHttpMethodFilter.)
+Grails will process (e.g. turn a POST into a GET) and swallow the `X-HTTP-Method-Override header`.  (It appears this is done by the `HiddenHttpMethodFilter`.)
 
-To pass your forwarded requests through unchanged use X-Forward-HTTP-Method-Override, which will be forwarded as X-HTTP-Method-Override.  (New in Version 0.1.2)
+To pass your forwarded requests through unchanged use `X-Forward-HTTP-Method-Override`, which will be forwarded as `X-HTTP-Method-Override`.  (New in Version 0.1.2)
 
 Release on Grails.org
 ---------------------
@@ -51,5 +51,5 @@ The included ProxyServlet.Java file is from:
 http://edwardstx.net/2010/06/http-proxy-servlet/
 (Also Apache 2.0 Licensed)
 
-Since that Servlet is not hosted under source control, we've included the .java file in src/java/net/edwardstx/ProxyServlet.java and have made some minor modification to it.
+Since that Servlet is not hosted under source control, we've included the .java file in `src/java/net/edwardstx/ProxyServlet.java` and have made some minor modifications to it.
 
