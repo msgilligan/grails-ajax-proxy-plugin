@@ -14,11 +14,11 @@ grails.project.dependency.resolution = {
 	}
 
 	dependencies {
-		runtime('commons-httpclient:commons-httpclient:3.1') {
+		compile('javax.servlet:servlet-api:2.5') {
 			transitive = false
 		}
-		runtime('commons-logging:commons-logging:1.1.1') {
-			transitive = false
+		runtime('org.apache.httpcomponents:httpclient:4.1.3') {
+			transitive = true
 		}
 	}
 

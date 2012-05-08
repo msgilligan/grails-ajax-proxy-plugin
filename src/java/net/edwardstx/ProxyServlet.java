@@ -6,6 +6,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.List;
@@ -19,21 +20,17 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import org.apache.commons.fileupload.FileItem;
-import org.apache.commons.fileupload.FileUploadException;
-import org.apache.commons.fileupload.disk.DiskFileItemFactory;
-import org.apache.commons.fileupload.servlet.ServletFileUpload;
-import org.apache.commons.httpclient.Header;
-import org.apache.commons.httpclient.HttpClient;
-import org.apache.commons.httpclient.HttpMethod;
-import org.apache.commons.httpclient.NameValuePair;
-import org.apache.commons.httpclient.methods.GetMethod;
-import org.apache.commons.httpclient.methods.PostMethod;
-import org.apache.commons.httpclient.methods.multipart.ByteArrayPartSource;
-import org.apache.commons.httpclient.methods.multipart.FilePart;
-import org.apache.commons.httpclient.methods.multipart.MultipartRequestEntity;
-import org.apache.commons.httpclient.methods.multipart.Part;
-import org.apache.commons.httpclient.methods.multipart.StringPart;
+import org.apache.http.Header;
+import org.apache.http.HttpResponse;
+import org.apache.http.NameValuePair;
+import org.apache.http.client.entity.UrlEncodedFormEntity;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.client.methods.HttpRequestBase;
+import org.apache.http.impl.client.DefaultHttpClient;
+import org.apache.http.message.BasicHeader;
+import org.apache.http.message.BasicNameValuePair;
+
 
 
 public class ProxyServlet extends HttpServlet {
@@ -141,7 +138,7 @@ public class ProxyServlet extends HttpServlet {
     		throws IOException, ServletException {
     	logger.info("doGet");
 		// Create a GET request
-		GetMethod getMethodProxyRequest = new GetMethod(this.getProxyURL(httpServletRequest));
+    	HttpGet getMethodProxyRequest = new HttpGet(this.getProxyURL(httpServletRequest));
 		// Forward the request headers
 		setProxyRequestHeaders(httpServletRequest, getMethodProxyRequest);
     	// Execute the proxy request
@@ -160,15 +157,15 @@ public class ProxyServlet extends HttpServlet {
         	throws IOException, ServletException {
     	logger.info("doPost");
     	// Create a standard POST request
-    	PostMethod postMethodProxyRequest = new PostMethod(this.getProxyURL(httpServletRequest));
+    	HttpPost postMethodProxyRequest = new HttpPost(this.getProxyURL(httpServletRequest));
 		// Forward the request headers
 		setProxyRequestHeaders(httpServletRequest, postMethodProxyRequest);
     	// Check if this is a mulitpart (file upload) POST
-    	if(ServletFileUpload.isMultipartContent(httpServletRequest)) {
-    		this.handleMultipartPost(postMethodProxyRequest, httpServletRequest);
-    	} else {
+//    	if(ServletFileUpload.isMultipartContent(httpServletRequest)) {
+//    		this.handleMultipartPost(postMethodProxyRequest, httpServletRequest);
+//    	} else {
     		this.handleStandardPost(postMethodProxyRequest, httpServletRequest);
-    	}
+//    	}
     	// Execute the proxy request
     	this.executeProxyRequest(postMethodProxyRequest, httpServletRequest, httpServletResponse);
     }
@@ -181,63 +178,63 @@ public class ProxyServlet extends HttpServlet {
 	 * @param httpServletRequest The {@link HttpServletRequest} that contains
 	 *                            the mutlipart POST data to be sent via the {@link PostMethod}
 	 */
-    @SuppressWarnings("unchecked")
-	private void handleMultipartPost(PostMethod postMethodProxyRequest, HttpServletRequest httpServletRequest)
-    		throws ServletException {
-    	// Create a factory for disk-based file items
-    	DiskFileItemFactory diskFileItemFactory = new DiskFileItemFactory();
-    	// Set factory constraints
-    	diskFileItemFactory.setSizeThreshold(this.getMaxFileUploadSize());
-    	diskFileItemFactory.setRepository(FILE_UPLOAD_TEMP_DIRECTORY);
-    	// Create a new file upload handler
-    	ServletFileUpload servletFileUpload = new ServletFileUpload(diskFileItemFactory);
-    	// Parse the request
-    	try {
-    		// Get the multipart items as a list
-    		List<FileItem> listFileItems = (List<FileItem>) servletFileUpload.parseRequest(httpServletRequest);
-    		// Create a list to hold all of the parts
-    		List<Part> listParts = new ArrayList<Part>();
-    		// Iterate the multipart items list
-    		for(FileItem fileItemCurrent : listFileItems) {
-    			// If the current item is a form field, then create a string part
-    			if (fileItemCurrent.isFormField()) {
-    				StringPart stringPart = new StringPart(
-    						fileItemCurrent.getFieldName(), // The field name
-    						fileItemCurrent.getString()     // The field value
-    				);
-    				// Add the part to the list
-    				listParts.add(stringPart);
-    			} else {
-    				// The item is a file upload, so we create a FilePart
-    				FilePart filePart = new FilePart(
-    						fileItemCurrent.getFieldName(),    // The field name
-    						new ByteArrayPartSource(
-    								fileItemCurrent.getName(), // The uploaded file name
-    								fileItemCurrent.get()      // The uploaded file contents
-    						)
-    				);
-    				// Add the part to the list
-    				listParts.add(filePart);
-    			}
-    		}
-    		MultipartRequestEntity multipartRequestEntity = new MultipartRequestEntity(
-																listParts.toArray(new Part[] {}),
-																postMethodProxyRequest.getParams()
-															);
-    		postMethodProxyRequest.setRequestEntity(multipartRequestEntity);
-    		// The current content-type header (received from the client) IS of
-    		// type "multipart/form-data", but the content-type header also
-    		// contains the chunk boundary string of the chunks. Currently, this
-    		// header is using the boundary of the client request, since we
-    		// blindly copied all headers from the client request to the proxy
-    		// request. However, we are creating a new request with a new chunk
-    		// boundary string, so it is necessary that we re-set the
-    		// content-type string to reflect the new chunk boundary string
-    		postMethodProxyRequest.setRequestHeader(STRING_CONTENT_TYPE_HEADER_NAME, multipartRequestEntity.getContentType());
-    	} catch (FileUploadException fileUploadException) {
-    		throw new ServletException(fileUploadException);
-    	}
-    }
+//    @SuppressWarnings("unchecked")
+//	private void handleMultipartPost(PostMethod postMethodProxyRequest, HttpServletRequest httpServletRequest)
+//    		throws ServletException {
+//    	// Create a factory for disk-based file items
+//    	DiskFileItemFactory diskFileItemFactory = new DiskFileItemFactory();
+//    	// Set factory constraints
+//    	diskFileItemFactory.setSizeThreshold(this.getMaxFileUploadSize());
+//    	diskFileItemFactory.setRepository(FILE_UPLOAD_TEMP_DIRECTORY);
+//    	// Create a new file upload handler
+//    	ServletFileUpload servletFileUpload = new ServletFileUpload(diskFileItemFactory);
+//    	// Parse the request
+//    	try {
+//    		// Get the multipart items as a list
+//    		List<FileItem> listFileItems = (List<FileItem>) servletFileUpload.parseRequest(httpServletRequest);
+//    		// Create a list to hold all of the parts
+//    		List<Part> listParts = new ArrayList<Part>();
+//    		// Iterate the multipart items list
+//    		for(FileItem fileItemCurrent : listFileItems) {
+//    			// If the current item is a form field, then create a string part
+//    			if (fileItemCurrent.isFormField()) {
+//    				StringPart stringPart = new StringPart(
+//    						fileItemCurrent.getFieldName(), // The field name
+//    						fileItemCurrent.getString()     // The field value
+//    				);
+//    				// Add the part to the list
+//    				listParts.add(stringPart);
+//    			} else {
+//    				// The item is a file upload, so we create a FilePart
+//    				FilePart filePart = new FilePart(
+//    						fileItemCurrent.getFieldName(),    // The field name
+//    						new ByteArrayPartSource(
+//    								fileItemCurrent.getName(), // The uploaded file name
+//    								fileItemCurrent.get()      // The uploaded file contents
+//    						)
+//    				);
+//    				// Add the part to the list
+//    				listParts.add(filePart);
+//    			}
+//    		}
+//    		MultipartRequestEntity multipartRequestEntity = new MultipartRequestEntity(
+//																listParts.toArray(new Part[] {}),
+//																postMethodProxyRequest.getParams()
+//															);
+//    		postMethodProxyRequest.setRequestEntity(multipartRequestEntity);
+//    		// The current content-type header (received from the client) IS of
+//    		// type "multipart/form-data", but the content-type header also
+//    		// contains the chunk boundary string of the chunks. Currently, this
+//    		// header is using the boundary of the client request, since we
+//    		// blindly copied all headers from the client request to the proxy
+//    		// request. However, we are creating a new request with a new chunk
+//    		// boundary string, so it is necessary that we re-set the
+//    		// content-type string to reflect the new chunk boundary string
+//    		postMethodProxyRequest.setRequestHeader(STRING_CONTENT_TYPE_HEADER_NAME, multipartRequestEntity.getContentType());
+//    	} catch (FileUploadException fileUploadException) {
+//    		throw new ServletException(fileUploadException);
+//    	}
+//    }
     
 	/**
 	 * Sets up the given {@link PostMethod} to send the same standard POST
@@ -246,9 +243,10 @@ public class ProxyServlet extends HttpServlet {
 	 *                                configuring to send a standard POST request
 	 * @param httpServletRequest The {@link HttpServletRequest} that contains
 	 *                            the POST data to be sent via the {@link PostMethod}
+	 * @throws UnsupportedEncodingException 
 	 */    
     @SuppressWarnings("unchecked")
-	private void handleStandardPost(PostMethod postMethodProxyRequest, HttpServletRequest httpServletRequest) {
+	private void handleStandardPost(HttpPost postMethodProxyRequest, HttpServletRequest httpServletRequest) throws UnsupportedEncodingException {
 		// Get the client POST data as a Map
 		Map<String, String[]> mapPostParameters = (Map<String,String[]>) httpServletRequest.getParameterMap();
 		// Create a List to hold the NameValuePairs to be passed to the PostMethod
@@ -259,12 +257,13 @@ public class ProxyServlet extends HttpServlet {
 			String[] stringArrayParameterValues = mapPostParameters.get(stringParameterName);
 			for(String stringParamterValue : stringArrayParameterValues) {
 				// Create a NameValuePair and store in list
-				NameValuePair nameValuePair = new NameValuePair(stringParameterName, stringParamterValue);
+				NameValuePair nameValuePair = new BasicNameValuePair(stringParameterName, stringParamterValue);
 				listNameValuePairs.add(nameValuePair);
 			}
 		}
 		// Set the proxy request POST data 
-		postMethodProxyRequest.setRequestBody(listNameValuePairs.toArray(new NameValuePair[] { }));
+		UrlEncodedFormEntity entity = new UrlEncodedFormEntity(listNameValuePairs, "UTF-8");
+		postMethodProxyRequest.setEntity(entity);
     }
     
     /**
@@ -277,15 +276,16 @@ public class ProxyServlet extends HttpServlet {
      * @throws ServletException Can be thrown to indicate that another error has occurred
      */
     private void executeProxyRequest(
-    		HttpMethod httpMethodProxyRequest,
+    		HttpRequestBase httpMethodProxyRequest,
     		HttpServletRequest httpServletRequest,
     		HttpServletResponse httpServletResponse)
     			throws IOException, ServletException {
 		// Create a default HttpClient
-    	HttpClient httpClient = new HttpClient();
-		httpMethodProxyRequest.setFollowRedirects(false);
+    	DefaultHttpClient httpClient = new DefaultHttpClient();
+//		httpMethodProxyRequest.setFollowRedirects(false);
 		// Execute the request
-		int intProxyResponseCode = httpClient.executeMethod(httpMethodProxyRequest);
+		HttpResponse response = httpClient.execute(httpMethodProxyRequest);
+		int intProxyResponseCode = response.getStatusLine().getStatusCode();
 
 		// Check if the proxy response is a redirect
 		// The following code is adapted from org.tigris.noodle.filters.CheckForRedirect
@@ -293,7 +293,7 @@ public class ProxyServlet extends HttpServlet {
 		if(intProxyResponseCode >= HttpServletResponse.SC_MULTIPLE_CHOICES /* 300 */
 				&& intProxyResponseCode < HttpServletResponse.SC_NOT_MODIFIED /* 304 */) {
 			String stringStatusCode = Integer.toString(intProxyResponseCode);
-			String stringLocation = httpMethodProxyRequest.getResponseHeader(STRING_LOCATION_HEADER).getValue();
+			String stringLocation = response.getFirstHeader(STRING_LOCATION_HEADER).getValue();
 			if(stringLocation == null) {
 					throw new ServletException("Recieved status code: " + stringStatusCode 
 							+ " but no " +  STRING_LOCATION_HEADER + " header was found in the response");
@@ -322,7 +322,7 @@ public class ProxyServlet extends HttpServlet {
 		httpServletResponse.setStatus(intProxyResponseCode);
 
         // Pass response headers back to the client
-        Header[] headerArrayResponse = httpMethodProxyRequest.getResponseHeaders();
+        Header[] headerArrayResponse = response.getAllHeaders();
         for(Header header : headerArrayResponse) {
             if (!header.getName().equals("Transfer-Encoding")) {
        		    httpServletResponse.setHeader(header.getName(), header.getValue());
@@ -330,7 +330,7 @@ public class ProxyServlet extends HttpServlet {
         }
         
         // Send the content to the client
-        InputStream inputStreamProxyResponse = httpMethodProxyRequest.getResponseBodyAsStream();
+        InputStream inputStreamProxyResponse = response.getEntity().getContent();
         BufferedInputStream bufferedInputStream = new BufferedInputStream(inputStreamProxyResponse);
         OutputStream outputStreamClientResponse = httpServletResponse.getOutputStream();
         int intNextByte;
@@ -353,7 +353,7 @@ public class ProxyServlet extends HttpServlet {
      *                                the proxy host
      */
     @SuppressWarnings("unchecked")
-	private void setProxyRequestHeaders(HttpServletRequest httpServletRequest, HttpMethod httpMethodProxyRequest) {
+	private void setProxyRequestHeaders(HttpServletRequest httpServletRequest, HttpRequestBase httpMethodProxyRequest) {
     	// Get an Enumeration of all of the header names sent by the client
 		Enumeration enumerationOfHeaderNames = httpServletRequest.getHeaderNames();
 		while(enumerationOfHeaderNames.hasMoreElements()) {
@@ -378,10 +378,10 @@ public class ProxyServlet extends HttpServlet {
 				if(stringHeaderName.equalsIgnoreCase("X-Forward-HTTP-Method-Override")) {
 				    stringHeaderName = "X-HTTP-Method-Override";
 				}
-				Header header = new Header(stringHeaderName, stringHeaderValue);
+				BasicHeader header = new BasicHeader(stringHeaderName, stringHeaderValue);
 		    	logger.info("==> Forwarding request header " + stringHeaderName + " ==: " + stringHeaderValue);
 				// Set the same header on the proxy request
-				httpMethodProxyRequest.setRequestHeader(header);
+				httpMethodProxyRequest.setHeader(header);
 			}
 		}
     }

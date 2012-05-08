@@ -1,4 +1,6 @@
 target
+target-eclipse
+.settings
 web-app
 plugin.xml
 grails-ajax-proxy-0.*.zip

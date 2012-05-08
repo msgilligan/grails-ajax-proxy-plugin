@@ -1,6 +1,6 @@
 class AjaxProxyGrailsPlugin {
-    def version = "0.1.2"
-    def grailsVersion = "1.3 > *"
+    def version = "0.2"
+    def grailsVersion = "2.0 > *"
 
     def author = "Sean Gilligan"
     def authorEmail = "sean at msgilligan dot com"
