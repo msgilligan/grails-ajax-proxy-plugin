@@ -147,8 +147,49 @@ public class ProxyServlet extends HttpServlet {
     	// Execute the proxy request
 		this.executeProxyRequest(getMethodProxyRequest, httpServletRequest, httpServletResponse);
 	}
-	
-	/**
+  
+      /**
+     * Performs an HTTP PUT request
+     * @param httpServletRequest The {@link HttpServletRequest} object passed
+     *                            in by the servlet engine representing the
+     *                            client request to be proxied
+     * @param httpServletResponse The {@link HttpServletResponse} object by which
+     *                             we can send a proxied response to the client
+     */
+    public void doPut(HttpServletRequest httpServletRequest, HttpServletResponse httpServletResponse)
+            throws IOException, ServletException {
+        // Create a standard PUT request
+        PutMethod putMethodProxyRequest = new PutMethod(this.getProxyURL(httpServletRequest));
+        // Forward the request headers
+        setProxyRequestHeaders(httpServletRequest, putMethodProxyRequest);
+
+        this.handleStandardPut(putMethodProxyRequest, httpServletRequest);
+        // Execute the proxy request
+        this.executeProxyRequest(putMethodProxyRequest, httpServletRequest, httpServletResponse);
+    }
+
+    /**
+     * Sets up the given {@link PutMethod} to send the same standard PUT
+     * data as was sent in the given {@link HttpServletRequest}
+     * @param putMethodProxyRequest The {@link PutMethod} that we are
+     *                                configuring to send a standard PUT request
+     * @param httpServletRequest The {@link HttpServletRequest} that contains
+     *                            the POST data to be sent via the {@link PutMethod}
+     */
+    @SuppressWarnings("unchecked")
+    private void handleStandardPut(PutMethod putMethodProxyRequest, HttpServletRequest httpServletRequest) throws IOException {
+
+        BufferedReader reader = httpServletRequest.getReader();
+        StringBuilder sb = new StringBuilder();
+        String line;
+        while ((line = reader.readLine()) != null) {
+            sb.append(line).append("\n");
+        }
+
+        putMethodProxyRequest.setRequestEntity(new StringRequestEntity(sb.toString(), httpServletRequest.getContentType(), httpServletRequest.getCharacterEncoding()));
+    }
+  
+   /**
 	 * Performs an HTTP POST request
 	 * @param httpServletRequest The {@link HttpServletRequest} object passed
 	 *                            in by the servlet engine representing the
@@ -248,23 +289,34 @@ public class ProxyServlet extends HttpServlet {
 	 *                            the POST data to be sent via the {@link PostMethod}
 	 */    
     @SuppressWarnings("unchecked")
-	private void handleStandardPost(PostMethod postMethodProxyRequest, HttpServletRequest httpServletRequest) {
+	private void handleStandardPost(PostMethod postMethodProxyRequest, HttpServletRequest httpServletRequest)
+            throws IOException  {
 		// Get the client POST data as a Map
 		Map<String, String[]> mapPostParameters = (Map<String,String[]>) httpServletRequest.getParameterMap();
 		// Create a List to hold the NameValuePairs to be passed to the PostMethod
 		List<NameValuePair> listNameValuePairs = new ArrayList<NameValuePair>();
-		// Iterate the parameter names
-		for(String stringParameterName : mapPostParameters.keySet()) {
-			// Iterate the values for each parameter name
-			String[] stringArrayParameterValues = mapPostParameters.get(stringParameterName);
-			for(String stringParamterValue : stringArrayParameterValues) {
-				// Create a NameValuePair and store in list
-				NameValuePair nameValuePair = new NameValuePair(stringParameterName, stringParamterValue);
-				listNameValuePairs.add(nameValuePair);
-			}
-		}
-		// Set the proxy request POST data 
-		postMethodProxyRequest.setRequestBody(listNameValuePairs.toArray(new NameValuePair[] { }));
+
+        // Iterate the parameter names
+        for(String stringParameterName : mapPostParameters.keySet()) {
+            // Iterate the values for each parameter name
+            String[] stringArrayParameterValues = mapPostParameters.get(stringParameterName);
+            for(String stringParameterValue : stringArrayParameterValues) {
+                // Create a NameValuePair and store in list
+                NameValuePair nameValuePair = new NameValuePair(stringParameterName, stringParameterValue);
+                listNameValuePairs.add(nameValuePair);
+            }
+        }
+
+        BufferedReader reader = httpServletRequest.getReader();
+        StringBuilder sb = new StringBuilder();
+        String line;
+        while ((line = reader.readLine()) != null) {
+            sb.append(line).append("\n");
+        }
+
+		// Set the proxy request POST data
+		postMethodProxyRequest.setRequestBody(listNameValuePairs.toArray(new NameValuePair[listNameValuePairs.size()]));
+        postMethodProxyRequest.setRequestEntity(new StringRequestEntity(sb.toString(), httpServletRequest.getContentType(), httpServletRequest.getCharacterEncoding()));
     }
     
     /**
