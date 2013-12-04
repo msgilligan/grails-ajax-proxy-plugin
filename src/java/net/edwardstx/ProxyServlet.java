@@ -1,16 +1,10 @@
 package net.edwardstx;
 
 
-import java.io.BufferedInputStream;
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
+import java.io.*;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.List;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import java.util.Map;
 
 import javax.servlet.ServletConfig;
@@ -29,6 +23,8 @@ import org.apache.commons.httpclient.HttpMethod;
 import org.apache.commons.httpclient.NameValuePair;
 import org.apache.commons.httpclient.methods.GetMethod;
 import org.apache.commons.httpclient.methods.PostMethod;
+import org.apache.commons.httpclient.methods.PutMethod;
+import org.apache.commons.httpclient.methods.StringRequestEntity;
 import org.apache.commons.httpclient.methods.multipart.ByteArrayPartSource;
 import org.apache.commons.httpclient.methods.multipart.FilePart;
 import org.apache.commons.httpclient.methods.multipart.MultipartRequestEntity;
@@ -41,13 +37,6 @@ public class ProxyServlet extends HttpServlet {
 	 * Serialization UID.
 	 */
 	private static final long serialVersionUID = 1L;
-	
-	
-	/**
-	 * Logger (use java.util to avoid dependencies - or should we use log4j because of Grails?).
-	 */
-	private static Logger logger = Logger.getLogger(ProxyServlet.class.getName());
-	
 	/**
 	 * Key for redirect location header.
 	 */
@@ -97,8 +86,6 @@ public class ProxyServlet extends HttpServlet {
 	 * @param servletConfig The Servlet configuration passed in by the servlet conatiner
 	 */
 	public void init(ServletConfig servletConfig) {
-    	logger.setLevel(Level.OFF);
-    	logger.info("init");
 		// Get the proxy scheme (http:// or https://)
 		String stringProxySchemeNew = servletConfig.getInitParameter("proxyScheme");
 		if(stringProxySchemeNew == null || stringProxySchemeNew.length() == 0 ||
@@ -139,7 +126,6 @@ public class ProxyServlet extends HttpServlet {
 	 */
 	public void doGet (HttpServletRequest httpServletRequest, HttpServletResponse httpServletResponse)
     		throws IOException, ServletException {
-    	logger.info("doGet");
 		// Create a GET request
 		GetMethod getMethodProxyRequest = new GetMethod(this.getProxyURL(httpServletRequest));
 		// Forward the request headers
@@ -147,6 +133,47 @@ public class ProxyServlet extends HttpServlet {
     	// Execute the proxy request
 		this.executeProxyRequest(getMethodProxyRequest, httpServletRequest, httpServletResponse);
 	}
+
+    /**
+     * Performs an HTTP POST request
+     * @param httpServletRequest The {@link HttpServletRequest} object passed
+     *                            in by the servlet engine representing the
+     *                            client request to be proxied
+     * @param httpServletResponse The {@link HttpServletResponse} object by which
+     *                             we can send a proxied response to the client
+     */
+    public void doPut(HttpServletRequest httpServletRequest, HttpServletResponse httpServletResponse)
+            throws IOException, ServletException {
+        // Create a standard PUT request
+        PutMethod putMethodProxyRequest = new PutMethod(this.getProxyURL(httpServletRequest));
+        // Forward the request headers
+        setProxyRequestHeaders(httpServletRequest, putMethodProxyRequest);
+
+        this.handleStandardPut(putMethodProxyRequest, httpServletRequest);
+        // Execute the proxy request
+        this.executeProxyRequest(putMethodProxyRequest, httpServletRequest, httpServletResponse);
+    }
+
+    /**
+     * Sets up the given {@link PutMethod} to send the same standard PUT
+     * data as was sent in the given {@link HttpServletRequest}
+     * @param putMethodProxyRequest The {@link PutMethod} that we are
+     *                                configuring to send a standard PUT request
+     * @param httpServletRequest The {@link HttpServletRequest} that contains
+     *                            the POST data to be sent via the {@link PutMethod}
+     */
+    @SuppressWarnings("unchecked")
+    private void handleStandardPut(PutMethod putMethodProxyRequest, HttpServletRequest httpServletRequest) throws IOException {
+
+        BufferedReader reader = httpServletRequest.getReader();
+        StringBuilder sb = new StringBuilder();
+        String line;
+        while ((line = reader.readLine()) != null) {
+            sb.append(line).append("\n");
+        }
+
+        putMethodProxyRequest.setRequestEntity(new StringRequestEntity(sb.toString(), httpServletRequest.getContentType(), httpServletRequest.getCharacterEncoding()));
+    }
 	
 	/**
 	 * Performs an HTTP POST request
@@ -158,7 +185,6 @@ public class ProxyServlet extends HttpServlet {
 	 */
 	public void doPost(HttpServletRequest httpServletRequest, HttpServletResponse httpServletResponse)
         	throws IOException, ServletException {
-    	logger.info("doPost");
     	// Create a standard POST request
     	PostMethod postMethodProxyRequest = new PostMethod(this.getProxyURL(httpServletRequest));
 		// Forward the request headers
@@ -221,7 +247,7 @@ public class ProxyServlet extends HttpServlet {
     			}
     		}
     		MultipartRequestEntity multipartRequestEntity = new MultipartRequestEntity(
-																listParts.toArray(new Part[] {}),
+                    listParts.toArray(new Part[listParts.size()]),
 																postMethodProxyRequest.getParams()
 															);
     		postMethodProxyRequest.setRequestEntity(multipartRequestEntity);
@@ -248,23 +274,34 @@ public class ProxyServlet extends HttpServlet {
 	 *                            the POST data to be sent via the {@link PostMethod}
 	 */    
     @SuppressWarnings("unchecked")
-	private void handleStandardPost(PostMethod postMethodProxyRequest, HttpServletRequest httpServletRequest) {
+	private void handleStandardPost(PostMethod postMethodProxyRequest, HttpServletRequest httpServletRequest)
+            throws IOException  {
 		// Get the client POST data as a Map
 		Map<String, String[]> mapPostParameters = (Map<String,String[]>) httpServletRequest.getParameterMap();
 		// Create a List to hold the NameValuePairs to be passed to the PostMethod
 		List<NameValuePair> listNameValuePairs = new ArrayList<NameValuePair>();
-		// Iterate the parameter names
-		for(String stringParameterName : mapPostParameters.keySet()) {
-			// Iterate the values for each parameter name
-			String[] stringArrayParameterValues = mapPostParameters.get(stringParameterName);
-			for(String stringParamterValue : stringArrayParameterValues) {
-				// Create a NameValuePair and store in list
-				NameValuePair nameValuePair = new NameValuePair(stringParameterName, stringParamterValue);
-				listNameValuePairs.add(nameValuePair);
-			}
-		}
-		// Set the proxy request POST data 
-		postMethodProxyRequest.setRequestBody(listNameValuePairs.toArray(new NameValuePair[] { }));
+
+        // Iterate the parameter names
+        for(String stringParameterName : mapPostParameters.keySet()) {
+            // Iterate the values for each parameter name
+            String[] stringArrayParameterValues = mapPostParameters.get(stringParameterName);
+            for(String stringParameterValue : stringArrayParameterValues) {
+                // Create a NameValuePair and store in list
+                NameValuePair nameValuePair = new NameValuePair(stringParameterName, stringParameterValue);
+                listNameValuePairs.add(nameValuePair);
+            }
+        }
+
+        BufferedReader reader = httpServletRequest.getReader();
+        StringBuilder sb = new StringBuilder();
+        String line;
+        while ((line = reader.readLine()) != null) {
+            sb.append(line).append("\n");
+        }
+
+		// Set the proxy request POST data
+		postMethodProxyRequest.setRequestBody(listNameValuePairs.toArray(new NameValuePair[listNameValuePairs.size()]));
+        postMethodProxyRequest.setRequestEntity(new StringRequestEntity(sb.toString(), httpServletRequest.getContentType(), httpServletRequest.getCharacterEncoding()));
     }
     
     /**
@@ -368,18 +405,16 @@ public class ProxyServlet extends HttpServlet {
 			Enumeration enumerationOfHeaderValues = httpServletRequest.getHeaders(stringHeaderName);
 			while(enumerationOfHeaderValues.hasMoreElements()) {
 				String stringHeaderValue = (String) enumerationOfHeaderValues.nextElement();
-			    logger.info("<== Received request header   " + stringHeaderName + " ==: " + stringHeaderValue);
 				// In case the proxy host is running multiple virtual servers,
 				// rewrite the Host header to ensure that we get content from
 				// the correct virtual server
 				if(stringHeaderName.equalsIgnoreCase(STRING_HOST_HEADER_NAME)){
 					stringHeaderValue = getProxyHostAndPort();
 				}
-				if(stringHeaderName.equalsIgnoreCase("X-Forward-HTTP-Method-Override")) {
-				    stringHeaderName = "X-HTTP-Method-Override";
-				}
+                if(stringHeaderName.equalsIgnoreCase("X-Forward-HTTP-Method-Override")) {
+                    stringHeaderName = "X-HTTP-Method-Override";
+                }
 				Header header = new Header(stringHeaderName, stringHeaderValue);
-		    	logger.info("==> Forwarding request header " + stringHeaderName + " ==: " + stringHeaderValue);
 				// Set the same header on the proxy request
 				httpMethodProxyRequest.setRequestHeader(header);
 			}
